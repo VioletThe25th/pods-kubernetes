@@ -501,3 +501,42 @@ Je lance ensuite la commande suivante :
 ```bash
 kubectl apply -f pod-nginx.yaml
 ```
+
+Après ça, je me connecte au pod : 
+```bash
+kubectl exec nginx-pod -it -- sh
+```
+
+Puis je vérifie que les variables d'environnement sont bien présentes : 
+```bash
+env | grep CUST
+```
+
+J'obtiens ce message : 
+```bash
+/ # env | grep CUST
+CUST_NGINX_PORT=8080
+CUST_NGINX_WORKER_PROCESSES=2
+```
+
+### DockerHub
+
+#### 1. Pull l'image et la renommée
+
+```bash
+docker pull nginx:alpine
+docker tag nginx:alpine violetgrace/mynginx:alpine
+```
+
+#### 2. Push l'image sur DockerHub
+
+Je dois d'abord me connecter :
+```bash
+docker login
+```
+Puis push l'image :
+```bash
+docker push violetgrace/mynginx:alpine
+```
+
+Je rend ensuite le repo privée sur `DockerHub`
