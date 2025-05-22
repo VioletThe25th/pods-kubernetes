@@ -543,9 +543,44 @@ Je rend ensuite le repo privée sur `DockerHub`
 
 Je lance esuite cette commande pour accéder au repo privée : 
 ```bash
-kubectl create secret docker-registry myregistrykey \
+kubectl create secret docker-registry regcred \
+  --docker-server=docker.io
   --docker-username=violetgrace \
   --docker-password=<your-password> \
   --docker-email=bilgerjeremy5705@gmail.com \
   --namespace=default
 ```
+
+je vois bien le message de confirmation : `e=default secret/regcred created`
+
+Je vérfie ensuite en lançant la commande : 
+```bash
+kubectl get secrets
+```
+
+Et j'ai bien le message suivant dans la console : 
+```bash
+NAME            TYPE                             DATA   AGE
+regcred         kubernetes.io/dockerconfigjson   1      24s
+```
+
+
+Je crée le yaml suivant : 
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: private-reg
+spec:
+  containers:
+  - name: private-reg-container
+    image: violetgrace/mynginx:alpine
+  imagePullSecrets:
+  - name: regcred
+```
+
+Je lance la commande suivante : 
+```bash
+kubectl apply -f pod-private.yaml
+```
+
