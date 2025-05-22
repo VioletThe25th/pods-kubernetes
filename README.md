@@ -240,3 +240,86 @@ On obtient le message suivant dans la console, attestant que les limites ont bie
 NAMESPACE   NAME               REFERENCE                     TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
 rolling     nginx-deployment   Deployment/nginx-deployment   cpu: <unknown>/80%   5         15        5          2m
 ```
+
+--- 
+
+## Classe de stockage
+
+Je peux lister les classes de stockages disponibles grâce à cette commande : 
+```bash
+kubectl get storageclass
+```
+
+J'obtiens donc ce message dans la console :
+```bash
+NAME                 PROVISIONER                RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+standard (default)   k8s.io/minikube-hostpath   Delete          Immediate           false                  67m
+```
+
+Je ne peux cependant pas noter de différences entre les `VOLUMEBINDINGMODE` étant donné que j'en ai qu'un qui est lancé actuellement. Mais de ce que j'ai pu trouver sur internet, et avec les informations présentes sur l'image d'exemple, il existe le mode `Immediate` comme j'ai moi, et le mode `WaitForFirstConsumer` :
+
+| Mode                   | Comportement                                           |
+| ---------------------- | ------------------------------------------------------ |
+| `Immediate`            | Volume créé **immédiatement** à la demande             |
+| `WaitForFirstConsumer` | Volume créé **lorsqu’un pod est planifié** sur un nœud |
+
+## Création d'un PVC
+(PersistentVolumeClaim)
+
+Je crée un fichier `yaml` `pvc.yaml` qui contient la configuration suivante :
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: azure-managed-disk
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: managed-csi
+  resources:
+    requests:
+      storage: 5Gi
+```
+
+Le fichier va créer un **PersistentVolumeClaim** nommée `azure-managed-disk`.
+Afin d'appliquer les changements : 
+```bash
+kubectl apply -f pvc.yaml
+```
+Je vois ce message de confirmation dans la console : `persistentvolumeclaim/azure-managed-disk created`
+
+Je lance ensuite la commande `kubectl get pvc` et je vois ce message :
+```bash
+NAME                 STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+azure-managed-disk   Pending                                      managed-csi    <unset>                 74s
+```
+
+---
+
+## Utiliser le volume et déployer un pod
+
+Je crée le fichier `pod.yaml` :
+```bash
+kind: Pod
+apiVersion: v1
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: mypod
+      image: mcr.microsoft.com/oss/nginx/nginx:1.15.5-alpine
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 250m
+          memory: 256Mi
+      volumeMounts:
+        - mountPath: "/mnt/azure"
+          name: volume
+  volumes:
+    - name: volume
+      persistentVolumeClaim:
+        claimName: azure-managed-disk
+```
