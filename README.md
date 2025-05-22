@@ -540,3 +540,12 @@ docker push violetgrace/mynginx:alpine
 ```
 
 Je rend ensuite le repo privée sur `DockerHub`
+
+Je lance esuite cette commande pour accéder au repo privée : 
+```bash
+kubectl create secret docker-registry myregistrykey \
+  --docker-username=violetgrace \
+  --docker-password=<your-password> \
+  --docker-email=bilgerjeremy5705@gmail.com \
+  --namespace=default
+```
