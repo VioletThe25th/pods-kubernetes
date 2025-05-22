@@ -450,3 +450,54 @@ Et on reçoit bien le message `Coucou`
 /mnt/azure # cat myfile.txt
 Coucou
 ```
+
+---
+
+## Variables et secrets
+
+### Configmap
+(Permet de passer des informations aux Pods comme des variables d'environnement)
+
+J'ai créé le `nginx-configmap.yaml` comprenant le code `yaml` suivant : 
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  CUST_NGINX_PORT: "8080"
+  CUST_NGINX_WORKER_PROCESSES: "2"
+```
+
+J'applique la configmap dans le clsuter grâce à la commande suivante : 
+```bash
+kubectl apply -f nginx-configmap.yaml
+```
+
+Je reçois bien le message de confirmation suivant : `configmap/nginx-config created`
+
+Afin de vérifier que c'est bien créer je peix lancer la commande suivante : 
+```bash
+kubectl get configmap
+```
+
+Je vois le résultat suivant dans la console : 
+```bash
+NAME               DATA   AGE
+kube-root-ca.crt   1      118m
+nginx-config       2      82s
+```
+
+### Utilisation de la configmap
+
+Utilisation d'un `envFrom` en ajoutant ceci à la fin du fichier `pod-nginx.yaml` : 
+```yaml
+envFrom:
+        - configMapRef:
+            name: nginx-config
+```
+
+Je lance ensuite la commande suivante : 
+```bash
+kubectl apply -f pod-nginx.yaml
+```
