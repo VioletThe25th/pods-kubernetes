@@ -323,3 +323,130 @@ spec:
       persistentVolumeClaim:
         claimName: azure-managed-disk
 ```
+
+Ce dernier va déployer un pod `mypod` sur le volume `/mnt/azure` qui provient du PVC précédent (azure-managed-disk)
+
+Afin de l'appliquer, je lance la commande suivante : 
+```bash
+kubectl apply -f pod.yaml
+```
+
+J'ai le message de confirmation suivant : `pod/mypod created`
+
+Afin de vérifier qu'il est bien lancé, je lance la commande suivante : 
+```bash
+kubectl get pods
+```
+
+Je vois ce résultat dans la console : 
+```bash
+NAME        READY   STATUS    RESTARTS   AGE
+mypod       0/1     Pending   0          20s
+nginx-pod   1/1     Running   0          75m
+```
+
+---
+
+### Créer un fichier depuis le pod
+
+Afin que cette étape fonctionne, je dois passer par plusieurs étapes intermédiaires, dû au fait que j'utilise `minikube`. Comme je l'avais dis plus haut, `minikube` n'accepte qu'un pod à la fois. Pour ce faire, je dois utiliser une `StorageClass` compatible **hostPath**.
+Je vais donc passer par le `storageClassName` : `standard` de `minikube`, au lieu de `managed-csi` dans `pvc.yaml`. Je vais relancer tout grâce à cette ligne de commande : 
+```bash
+kubectl delete pod mypod
+kubectl delete pvc azure-managed-disk
+
+kubectl apply -f pvc.yaml
+kubectl apply -f pod.yaml
+```
+
+
+Je vais suivre les étapes suivantes : 
+1. Ouvrir un shell dans le pod
+2. Créer un fichier dans le volume
+3. Quitter le pod (shell)
+4. Supprimer le pod
+5. Vérifier que le PVC et PV existent encore
+6. Recréer le pod
+7. Rouvrir un shell dans le nouveau pod
+8. Vérifier que le fichier est toujours là
+
+#### 1. Ouvrir un shell dans le pod
+```bash
+kubectl exec mypod -it -- sh
+```
+
+#### 2. Créer un fichier dans le volume
+```bash
+cd /mnt/azure
+echo "Coucou" > myfile.txt
+```
+
+On va ensuite voir le fichier : 
+```bash
+cat myfile.txt
+```
+
+On voit le message suivant dans la console : 
+```bash
+/mnt/azure # cat myfile.txt
+Coucou
+```
+#### 3. Quitter le pod
+```bash
+exit
+```
+
+#### 4. Supprimer le pod
+```bash
+kubectl delete -f pod.yaml
+```
+
+On voit ce message de confirmation : `pod "mypod" deleted`
+
+#### 5. Vérifier que le PVC et PV existent encore
+```bash
+kubectl get pvc
+kubectl get pv
+```
+
+On voit le message de confirmation suivant : 
+```bash
+NAME                 STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+azure-managed-disk   Bound    pvc-dafcf652-8150-4639-9e3a-7d65383165b9   5Gi        RWO            standard       <unset>                 6m19s
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                        STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-dafcf652-8150-4639-9e3a-7d65383165b9   5Gi        RWO            Delete           Bound    default/azure-managed-disk   standard       <unset>                          6m19s
+```
+
+#### 6. Recréer le pod
+Avec la même commande que lors de sa création
+```bash
+kubectl apply -f pod.yaml
+```
+
+#### 7. Rouvrir un shell dans le nouveau pod
+```bash
+kubectl exec mypod -it -- sh
+```
+
+#### 8. Vérifier que le fichier est toujours là
+```bash
+cd /mnt/azure
+ls
+cat myfile.txt
+```
+
+On voit bien lors de l'execution de la commande `ls`, que le fichier `myfile.txt` est toujours là :
+```bash
+/ # cd /mnt/azure
+/mnt/azure # ls
+myfile.txt
+```
+Si je lance la commande 
+```bash
+cat myfile.txt
+```
+Et on reçoit bien le message `Coucou` 
+```bash
+/mnt/azure # cat myfile.txt
+Coucou
+```
